@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Session } from '../App';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../App';
 import { PacientesTab } from './PacientesTab';
 import { EstadisticasTab } from './EstadisticasTab';
 import {

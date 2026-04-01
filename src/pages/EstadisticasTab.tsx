@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../App';
 import {
   TrendingUp, DollarSign, Users, Calendar,
   BarChart2, ChevronDown, ChevronUp, Lock

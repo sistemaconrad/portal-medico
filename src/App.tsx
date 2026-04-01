@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export { supabase };
 
 export type Session = {
   medico_id: string;
@@ -13,8 +19,33 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const resolverMedico = async (email: string) => {
+    const { data } = await supabase
+      .from('portal_medicos_acceso')
+      .select('medico_id, email, activo')
+      .eq('email', email)
+      .eq('activo', true)
+      .single();
+
+    if (data) {
+      const { data: medico } = await supabase
+        .from('medicos')
+        .select('nombre')
+        .eq('id', data.medico_id)
+        .single();
+
+      setSession({
+        medico_id: data.medico_id,
+        medico_nombre: medico?.nombre || email,
+        email,
+      });
+    } else {
+      await supabase.auth.signOut();
+      setSession(null);
+    }
+  };
+
   useEffect(() => {
-    // Verificar sesión activa de Supabase Auth
     supabase.auth.getSession().then(async ({ data: { session: s } }) => {
       if (s?.user) {
         await resolverMedico(s.user.email!);
@@ -32,28 +63,6 @@ export default function App() {
 
     return () => listener.subscription.unsubscribe();
   }, []);
-
-  const resolverMedico = async (email: string) => {
-    // Buscar el médico vinculado a este email en la tabla portal_medicos_acceso
-    const { data } = await supabase
-      .from('portal_medicos_acceso')
-      .select('medico_id, medicos(nombre)')
-      .eq('email', email)
-      .eq('activo', true)
-      .single();
-
-    if (data) {
-      setSession({
-        medico_id: data.medico_id,
-        medico_nombre: (data.medicos as any)?.nombre || email,
-        email,
-      });
-    } else {
-      // Email no autorizado en el portal
-      await supabase.auth.signOut();
-      setSession(null);
-    }
-  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
